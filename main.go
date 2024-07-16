@@ -6,8 +6,6 @@ import (
 	"github.com/mapfumo/golang-blockchain/blockchain"
 )
 
-
-
 func main() {
 	bc := blockchain.InitBlockChain()
 	bc.AddBlock("Block 1")

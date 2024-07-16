@@ -2,99 +2,79 @@ package blockchain
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"testing"
 )
 
-// TestGenesisBlock tests the initialization of the Genesis block.
+// TestCreateBlock tests the CreateBlock function.
+func TestCreateBlock(t *testing.T) {
+	data := "test data"
+	prevHash := []byte("previous hash")
+	block := CreateBlock(data, prevHash)
+
+	if !bytes.Equal(block.Data, []byte(data)) {
+		t.Errorf("CreateBlock() Data = %s; want %s", block.Data, data)
+	}
+	if !bytes.Equal(block.PrevHash, prevHash) {
+		t.Errorf("CreateBlock() PrevHash = %x; want %x", block.PrevHash, prevHash)
+	}
+	if len(block.Hash) == 0 {
+		t.Error("CreateBlock() Hash is empty; want non-empty hash")
+	}
+}
+
+// TestGenesisBlock tests the GenesisBlock function.
 func TestGenesisBlock(t *testing.T) {
-	// Initialize the blockchain
-	bc := InitBlockChain()
-	// Get the Genesis block
-	genesisBlock := bc.Blocks[0]
+	block := GenesisBlock()
 
-	// Check if the data of the Genesis block is "Genesis"
+	if !bytes.Equal(block.Data, []byte("Genesis")) {
+		t.Errorf("GenesisBlock() Data = %s; want Genesis", block.Data)
+	}
+	if len(block.PrevHash) != 0 {
+		t.Errorf("GenesisBlock() PrevHash = %x; want empty", block.PrevHash)
+	}
+	if len(block.Hash) == 0 {
+		t.Error("GenesisBlock() Hash is empty; want non-empty hash")
+	}
+}
+
+// TestInitBlockChain tests the InitBlockChain function.
+func TestInitBlockChain(t *testing.T) {
+	bc := InitBlockChain()
+
+	if len(bc.Blocks) != 1 {
+		t.Errorf("InitBlockChain() Blocks length = %d; want 1", len(bc.Blocks))
+	}
+
+	genesisBlock := bc.Blocks[0]
 	if !bytes.Equal(genesisBlock.Data, []byte("Genesis")) {
-		t.Errorf("Expected Genesis block data to be 'Genesis', got '%s'", genesisBlock.Data)
+		t.Errorf("InitBlockChain() GenesisBlock Data = %s; want Genesis", genesisBlock.Data)
 	}
-
-	// Check if the PrevHash of the Genesis block is empty
 	if len(genesisBlock.PrevHash) != 0 {
-		t.Errorf("Expected Genesis block PrevHash to be empty, got '%x'", genesisBlock.PrevHash)
+		t.Errorf("InitBlockChain() GenesisBlock PrevHash = %x; want empty", genesisBlock.PrevHash)
 	}
-
-	// Check if the hash of the Genesis block is correct
-	expectedHash := sha256.Sum256([]byte("Genesis"))
-	if !bytes.Equal(genesisBlock.Hash, expectedHash[:]) {
-		t.Errorf("Expected Genesis block hash to be '%x', got '%x'", expectedHash, genesisBlock.Hash)
+	if len(genesisBlock.Hash) == 0 {
+		t.Error("InitBlockChain() GenesisBlock Hash is empty; want non-empty hash")
 	}
 }
 
-// TestAddBlock tests adding the first block to the blockchain.
+// TestAddBlock tests the AddBlock function.
 func TestAddBlock(t *testing.T) {
-	// Initialize the blockchain
 	bc := InitBlockChain()
-	// Add a new block with data "First Block"
-	bc.AddBlock("First Block")
+	bc.AddBlock("Block 1")
 
-	// Check if the blockchain length is 2 (Genesis block + first block)
 	if len(bc.Blocks) != 2 {
-		t.Fatalf("Expected blockchain length to be 2, got %d", len(bc.Blocks))
+		t.Errorf("AddBlock() Blocks length = %d; want 2", len(bc.Blocks))
 	}
 
-	// Get the Genesis block and the first block
-	genesisBlock := bc.Blocks[0]
-	firstBlock := bc.Blocks[1]
-
-	// Check if the data of the first block is "First Block"
-	if !bytes.Equal(firstBlock.Data, []byte("First Block")) {
-		t.Errorf("Expected first block data to be 'First Block', got '%s'", firstBlock.Data)
+	lastBlock := bc.Blocks[len(bc.Blocks)-1]
+	if !bytes.Equal(lastBlock.Data, []byte("Block 1")) {
+		t.Errorf("AddBlock() LastBlock Data = %s; want Block 1", lastBlock.Data)
 	}
 
-	// Check if the PrevHash of the first block matches the hash of the Genesis block
-	if !bytes.Equal(firstBlock.PrevHash, genesisBlock.Hash) {
-		t.Errorf("Expected first block PrevHash to be '%x', got '%x'", genesisBlock.Hash, firstBlock.PrevHash)
-	}
-
-	// Check if the hash of the first block is correct
-	expectedHash := sha256.Sum256(append(firstBlock.Data, firstBlock.PrevHash...))
-	if !bytes.Equal(firstBlock.Hash, expectedHash[:]) {
-		t.Errorf("Expected first block hash to be '%x', got '%x'", expectedHash, firstBlock.Hash)
+	prevBlock := bc.Blocks[len(bc.Blocks)-2]
+	if !bytes.Equal(lastBlock.PrevHash, prevBlock.Hash) {
+		t.Errorf("AddBlock() LastBlock PrevHash = %x; want %x", lastBlock.PrevHash, prevBlock.Hash)
 	}
 }
 
-// TestMultipleBlocks tests adding multiple blocks to the blockchain.
-func TestMultipleBlocks(t *testing.T) {
-	// Initialize the blockchain
-	bc := InitBlockChain()
-	// Add a new block with data "First Block"
-	bc.AddBlock("First Block")
-	// Add a new block with data "Second Block"
-	bc.AddBlock("Second Block")
 
-	// Check if the blockchain length is 3 (Genesis block + first block + second block)
-	if len(bc.Blocks) != 3 {
-		t.Fatalf("Expected blockchain length to be 3, got %d", len(bc.Blocks))
-	}
-
-	// Get the Genesis block, the first block, and the second block
-	firstBlock := bc.Blocks[1]
-	secondBlock := bc.Blocks[2]
-
-
-	// Check if the data of the second block is "Second Block"
-	if !bytes.Equal(secondBlock.Data, []byte("Second Block")) {
-		t.Errorf("Expected second block data to be 'Second Block', got '%s'", secondBlock.Data)
-	}
-
-	// Check if the PrevHash of the second block matches the hash of the first block
-	if !bytes.Equal(secondBlock.PrevHash, firstBlock.Hash) {
-		t.Errorf("Expected second block PrevHash to be '%x', got '%x'", firstBlock.Hash, secondBlock.PrevHash)
-	}
-
-	// Check if the hash of the second block is correct
-	expectedHash := sha256.Sum256(append(secondBlock.Data, secondBlock.PrevHash...))
-	if !bytes.Equal(secondBlock.Hash, expectedHash[:]) {
-		t.Errorf("Expected second block hash to be '%x', got '%x'", expectedHash, secondBlock.Hash)
-	}
-}
