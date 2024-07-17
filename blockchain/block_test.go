@@ -2,79 +2,75 @@ package blockchain
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 )
 
-// TestCreateBlock tests the CreateBlock function.
 func TestCreateBlock(t *testing.T) {
 	data := "test data"
 	prevHash := []byte("previous hash")
 	block := CreateBlock(data, prevHash)
 
 	if !bytes.Equal(block.Data, []byte(data)) {
-		t.Errorf("CreateBlock() Data = %s; want %s", block.Data, data)
+		t.Errorf("expected block data to be %s, got %s", data, block.Data)
 	}
 	if !bytes.Equal(block.PrevHash, prevHash) {
-		t.Errorf("CreateBlock() PrevHash = %x; want %x", block.PrevHash, prevHash)
+		t.Errorf("expected block previous hash to be %x, got %x", prevHash, block.PrevHash)
 	}
 	if len(block.Hash) == 0 {
-		t.Error("CreateBlock() Hash is empty; want non-empty hash")
+		t.Errorf("expected block hash to be set, got empty hash")
+	}
+	if block.Nonce == 0 {
+		t.Errorf("expected block nonce to be set, got 0")
 	}
 }
 
-// TestGenesisBlock tests the GenesisBlock function.
 func TestGenesisBlock(t *testing.T) {
 	block := GenesisBlock()
 
-	if !bytes.Equal(block.Data, []byte("Genesis")) {
-		t.Errorf("GenesisBlock() Data = %s; want Genesis", block.Data)
+	if string(block.Data) != "Genesis" {
+		t.Errorf("expected Genesis block data to be 'Genesis', got %s", block.Data)
 	}
 	if len(block.PrevHash) != 0 {
-		t.Errorf("GenesisBlock() PrevHash = %x; want empty", block.PrevHash)
+		t.Errorf("expected Genesis block previous hash to be empty, got %x", block.PrevHash)
 	}
 	if len(block.Hash) == 0 {
-		t.Error("GenesisBlock() Hash is empty; want non-empty hash")
+		t.Errorf("expected Genesis block hash to be set, got empty hash")
+	}
+	if block.Nonce == 0 {
+		t.Errorf("expected Genesis block nonce to be set, got 0")
 	}
 }
 
-// TestInitBlockChain tests the InitBlockChain function.
-func TestInitBlockChain(t *testing.T) {
-	bc := InitBlockChain()
+func TestSerializeDeserialize(t *testing.T) {
+	data := "serialize test"
+	prevHash := []byte("prev hash")
+	block := CreateBlock(data, prevHash)
 
-	if len(bc.Blocks) != 1 {
-		t.Errorf("InitBlockChain() Blocks length = %d; want 1", len(bc.Blocks))
-	}
+	serializedBlock := block.Serialize()
+	deserializedBlock := Deserialize(serializedBlock)
 
-	genesisBlock := bc.Blocks[0]
-	if !bytes.Equal(genesisBlock.Data, []byte("Genesis")) {
-		t.Errorf("InitBlockChain() GenesisBlock Data = %s; want Genesis", genesisBlock.Data)
+	if !bytes.Equal(deserializedBlock.Data, block.Data) {
+		t.Errorf("expected deserialized block data to be %s, got %s", block.Data, deserializedBlock.Data)
 	}
-	if len(genesisBlock.PrevHash) != 0 {
-		t.Errorf("InitBlockChain() GenesisBlock PrevHash = %x; want empty", genesisBlock.PrevHash)
+	if !bytes.Equal(deserializedBlock.PrevHash, block.PrevHash) {
+		t.Errorf("expected deserialized block previous hash to be %x, got %x", block.PrevHash, deserializedBlock.PrevHash)
 	}
-	if len(genesisBlock.Hash) == 0 {
-		t.Error("InitBlockChain() GenesisBlock Hash is empty; want non-empty hash")
+	if !bytes.Equal(deserializedBlock.Hash, block.Hash) {
+		t.Errorf("expected deserialized block hash to be %x, got %x", block.Hash, deserializedBlock.Hash)
 	}
-}
-
-// TestAddBlock tests the AddBlock function.
-func TestAddBlock(t *testing.T) {
-	bc := InitBlockChain()
-	bc.AddBlock("Block 1")
-
-	if len(bc.Blocks) != 2 {
-		t.Errorf("AddBlock() Blocks length = %d; want 2", len(bc.Blocks))
-	}
-
-	lastBlock := bc.Blocks[len(bc.Blocks)-1]
-	if !bytes.Equal(lastBlock.Data, []byte("Block 1")) {
-		t.Errorf("AddBlock() LastBlock Data = %s; want Block 1", lastBlock.Data)
-	}
-
-	prevBlock := bc.Blocks[len(bc.Blocks)-2]
-	if !bytes.Equal(lastBlock.PrevHash, prevBlock.Hash) {
-		t.Errorf("AddBlock() LastBlock PrevHash = %x; want %x", lastBlock.PrevHash, prevBlock.Hash)
+	if deserializedBlock.Nonce != block.Nonce {
+		t.Errorf("expected deserialized block nonce to be %d, got %d", block.Nonce, deserializedBlock.Nonce)
 	}
 }
 
+func TestHandle(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("expected Handle to panic on error, but it did not")
+		}
+	}()
 
+	// This should cause Handle to panic
+	Handle(fmt.Errorf("test error"))
+}

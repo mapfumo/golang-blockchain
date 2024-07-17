@@ -25,11 +25,11 @@ This difficulty is dynamically adjusted to regulate the rate of new block creati
 */
 
 // Difficulty defines the mining difficulty. A higher value makes it more difficult to find a valid hash.
-const Difficulty = 12
+const Difficulty = 15
 
 // ProofOfWork represents a proof-of-work algorithm.
 type ProofOfWork struct {
-	Block  *Block  // Block is the block being mined.
+	Block  *Block   // Block is the block being mined.
 	Target *big.Int // Target is the hash target that a valid hash must be less than.
 }
 
@@ -46,16 +46,16 @@ func NewProofOfWork(block *Block) *ProofOfWork {
 func (pow *ProofOfWork) InitData(nonce int) []byte {
 	data := bytes.Join(
 		[][]byte{
-			pow.Block.PrevHash,        // Previous block's hash.
-			pow.Block.Data,            // Current block's data.
-			ToHex(int64(nonce)),       // Nonce converted to a byte slice.
-			ToHex(int64(Difficulty)),  // Difficulty level converted to a byte slice.
+			pow.Block.PrevHash,       // Previous block's hash.
+			pow.Block.Data,           // Current block's data.
+			ToHex(int64(nonce)),      // Nonce converted to a byte slice.
+			ToHex(int64(Difficulty)), // Difficulty level converted to a byte slice.
 		},
 		[]byte{}) // Separator (none needed here).
 	return data
 }
 
-// Run is the main method of the ProofOfWork. 
+// Run is the main method of the ProofOfWork.
 // It loops until a valid hash is found or the nonce reaches the maximum value
 // meeting the difficulty target.
 func (pow *ProofOfWork) Run() (int, []byte) {
@@ -95,7 +95,6 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 	// Return the valid nonce and the corresponding hash as a byte slice.
 	return nonce, hash[:]
 }
-
 
 func (pow *ProofOfWork) Validate() bool {
 	var intHash big.Int

@@ -16,6 +16,7 @@ func TestToHex(t *testing.T) {
 		t.Errorf("ToHex(%d) = %x; want %x", num, result, expected)
 	}
 }
+
 // TestNewProofOfWork tests the NewProofOfWork function.
 func TestNewProofOfWork(t *testing.T) {
 	block := &Block{PrevHash: []byte{}, Data: []byte("test block")}
@@ -86,4 +87,3 @@ func TestValidate(t *testing.T) {
 		t.Errorf("Validate() = false; want true")
 	}
 }
-
