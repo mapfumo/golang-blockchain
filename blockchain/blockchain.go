@@ -2,12 +2,18 @@ package blockchain
 
 import (
 	"fmt"
+	"os"
+	"runtime"
 
 	badger "github.com/dgraph-io/badger"
 )
 
 // dbPath is the directory where the BadgerDB database files will be stored.
-const dbPath = "./tmp/blocks"
+const (
+	dbPath = "./tmp/blocks"
+	dbFile = "./tmp/blocks/MANIFEST"
+	genesisData = "First Transaction from Genesis Block"
+)
 
 // BlockChain represents the blockchain with the last block's hash and the database instance.
 type BlockChain struct {
@@ -21,8 +27,58 @@ type BlockChainIterator struct {
 	Database    *badger.DB
 }
 
+func DBexists() bool {
+	if _, err := os.Stat(dbFile); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
 // InitBlockChain initializes a new blockchain or loads an existing one from the database.
-func InitBlockChain() *BlockChain {
+func InitBlockChain(address string) *BlockChain {
+	var lastHash []byte
+
+	if DBexists() {
+		fmt.Println("Blockchain already exists - DB exists")
+		runtime.Goexit()
+	}
+
+	// Set up BadgerDB options with the database path.
+	opts := badger.DefaultOptions(dbPath)
+	opts.ValueDir = dbPath
+
+	// Open the BadgerDB database.
+	db, err := badger.Open(opts)
+	Handle(err)
+
+	// Update the database to initialize or load the blockchain.
+	err = db.Update(func(txn *badger.Txn) error {
+		cbtx := CoinBaseTx(address, genesisData) // the address that will be rewarded 100 tokens
+		genesis := GenesisBlock(cbtx)
+		fmt.Println("Genesis block created")
+		err = txn.Set(genesis.Hash, genesis.Serialize())
+		Handle(err)
+		// Set the lastHash key to point to the genesis block.
+		err = txn.Set([]byte("lh"), genesis.Hash)
+
+		lastHash = genesis.Hash
+		return err
+	})
+
+	Handle(err)
+
+	// Return a new BlockChain instance with the last hash and database.
+	return &BlockChain{
+		LastHash: lastHash,
+		Database: db,
+	}
+}
+
+func ContinueBlockChain(address string) *BlockChain {
+	if DBexists()==false {
+		fmt.Println("Blockchain does not exist - Create one!t")
+		runtime.Goexit()
+	}
 	var lastHash []byte
 
 	// Set up BadgerDB options with the database path.
@@ -35,39 +91,19 @@ func InitBlockChain() *BlockChain {
 
 	// Update the database to initialize or load the blockchain.
 	err = db.Update(func(txn *badger.Txn) error {
-		// Check if the lastHash key exists (i.e., if we already have a blockchain).
-		if _, err := txn.Get([]byte("lh")); err == badger.ErrKeyNotFound {
-			// If the key does not exist, create the genesis block.
-			fmt.Println("No existing blockchain found")
-			genesis := GenesisBlock()
-			fmt.Println("Genesis block created")
-
-			// Serialize the genesis block and store it in the database.
-			err = txn.Set(genesis.Hash, genesis.Serialize())
-			Handle(err)
-			// Set the lastHash key to point to the genesis block.
-			err = txn.Set([]byte("lh"), genesis.Hash)
-
-			// Update the lastHash variable to the genesis block's hash.
-			lastHash = genesis.Hash
-
-			return err
-		} else {
-			// If the key exists, load the last hash from the database.
-			item, err := txn.Get([]byte("lh"))
-			Handle(err)
-			lastHash, err = item.ValueCopy(nil)
-			return err
-		}
+		item, err := txn.Get([]byte("lh"))
+		Handle(err)
+		lastHash, err = item.ValueCopy(nil)
+		return err
 	})
-
 	Handle(err)
 
-	// Return a new BlockChain instance with the last hash and database.
-	return &BlockChain{
+	bc := &BlockChain{
 		LastHash: lastHash,
 		Database: db,
 	}
+
+	return bc
 }
 
 // AddBlock creates a new block with the given data and adds it to the blockchain.
