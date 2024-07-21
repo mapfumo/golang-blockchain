@@ -8,11 +8,11 @@ import (
 )
 
 type Block struct {
-	Hash     []byte // hash of this block - derived from the Data and prevHash
+	Hash         []byte         // hash of this block - derived from the Data and prevHash
 	Transactions []*Transaction // each block needs at least one transaction
-	PrevHash []byte // hash of the previous block
-	Nonce    int
-	
+	PrevHash     []byte         // hash of the previous block
+	Nonce        int
+
 	// Timestamp int
 }
 
