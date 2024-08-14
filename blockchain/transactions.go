@@ -15,8 +15,6 @@ type Transaction struct {
 	Outputs []TxOutput
 }
 
-
-
 func (tx *Transaction) SetID() {
 	var encoded bytes.Buffer
 	var hash [32]byte
@@ -45,7 +43,6 @@ func CoinBaseTx(to, data string) *Transaction {
 
 }
 
-
 func NewTransaction(from, to string, amount int, bc *BlockChain) *Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
@@ -63,23 +60,21 @@ func NewTransaction(from, to string, amount int, bc *BlockChain) *Transaction {
 			input := TxInput{txID, out, from}
 			inputs = append(inputs, input)
 		}
-			
+
 	}
 	outputs = append(outputs, TxOutput{amount, to})
-	
+
 	if acc > amount {
 		outputs = append(outputs, TxOutput{acc - amount, from})
-	}	
+	}
 
 	tx := Transaction{nil, inputs, outputs}
 	tx.SetID() // get the hashed ID
 
 	return &tx
-	
-}
 
+}
 
 func (tx *Transaction) IsCoinbase() bool {
-	return len(tx.Inputs) == 1 && len(tx.Inputs[0].ID) == 0 &&  tx.Inputs[0].Out == -1
+	return len(tx.Inputs) == 1 && len(tx.Inputs[0].ID) == 0 && tx.Inputs[0].Out == -1
 }
-

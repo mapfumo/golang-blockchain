@@ -12,7 +12,7 @@ import (
 )
 
 // CommandLine struct to interact with the blockchain
-type CommandLine struct {}
+type CommandLine struct{}
 
 // printUsage prints the usage instructions for the CLI.
 func (cli *CommandLine) printUsage() {
@@ -31,7 +31,6 @@ func (cli *CommandLine) validateArgs() {
 		runtime.Goexit()
 	}
 }
-
 
 // printChain prints all the blocks in the blockchain.
 func (cli *CommandLine) printChain() {
@@ -59,14 +58,13 @@ func (cli *CommandLine) getBalance(address string) {
 	bc := blockchain.ContinueBlockChain(address)
 	defer bc.Database.Close()
 
-	balance :=0
+	balance := 0
 	UTXOs := bc.FindUTXO(address)
 	for _, out := range UTXOs {
 		balance += out.Value
 	}
 	fmt.Printf("Balance of %s: %d\n", address, balance)
 }
-
 
 func (cli *CommandLine) send(from, to string, amount int) {
 	bc := blockchain.ContinueBlockChain(from)

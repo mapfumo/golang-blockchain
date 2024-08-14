@@ -219,7 +219,6 @@ func (bc *BlockChain) FindUnspentTransactions(address string) []Transaction {
 	return unspentTxs
 }
 
-
 func (bc *BlockChain) FindUTXO(address string) []TxOutput {
 	var UTXOs []TxOutput
 	unspentTransactions := bc.FindUnspentTransactions(address)
@@ -240,7 +239,7 @@ func (bc *BlockChain) FindSpendableOutputs(address string, amount int) (int, map
 	unspentTxs := bc.FindUnspentTransactions(address)
 	accumulated := 0
 
-	Work:
+Work:
 	for _, tx := range unspentTxs {
 		txID := hex.EncodeToString(tx.ID)
 
