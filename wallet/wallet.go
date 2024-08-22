@@ -1,14 +1,14 @@
 package wallet
 
 import (
+	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
-	"fmt"
+	"encoding/gob"
 	"log"
-	// Deprecated
-	//"golang.org/x/crypto/ripemd160"
+	"math/big"
 )
 
 const (
@@ -17,8 +17,45 @@ const (
 )
 
 type Wallet struct {
-	PrivateKey ecdsa.PrivateKey
+	PrivateKey []byte
 	PublicKey  []byte
+}
+
+// Serialize Wallet to gob format
+func (w *Wallet) GobEncode() ([]byte, error) {
+	var buf bytes.Buffer
+	encoder := gob.NewEncoder(&buf)
+	
+	// Encode the PrivateKey and PublicKey fields manually
+	err := encoder.Encode(w.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+	
+	err = encoder.Encode(w.PublicKey)
+	if err != nil {
+		return nil, err
+	}
+	
+	return buf.Bytes(), nil
+}
+
+// Deserialize Wallet from gob format
+func (w *Wallet) GobDecode(data []byte) error {
+	buf := bytes.NewBuffer(data)
+	decoder := gob.NewDecoder(buf)
+	
+	err := decoder.Decode(&w.PrivateKey)
+	if err != nil {
+		return err
+	}
+	
+	err = decoder.Decode(&w.PublicKey)
+	if err != nil {
+		return err
+	}
+	
+	return nil
 }
 
 func (w Wallet) Address() []byte {
@@ -28,15 +65,11 @@ func (w Wallet) Address() []byte {
 	checksum := Checksum(versionedHash)
 
 	fullHash := append(versionedHash, checksum...)
-	address := Base58Encode(fullHash) // TODO: check other implementations
-
-	fmt.Printf("pub key: %x\n", w.PublicKey)
-	fmt.Printf("pub hash: %x\n", pubHash)
-	fmt.Printf("address: %x\n", address)
-
+	address := Base58Encode(fullHash)
 	return address
 }
 
+// Create new key pair and return the Wallet
 func NewKeyPair() (ecdsa.PrivateKey, []byte) {
 	curve := elliptic.P256()
 
@@ -51,25 +84,22 @@ func NewKeyPair() (ecdsa.PrivateKey, []byte) {
 
 func MakeWallet() *Wallet {
 	private, public := NewKeyPair()
-	wallet := Wallet{private, public}
+	wallet := Wallet{
+		PrivateKey: private.D.Bytes(),
+		PublicKey:  public,
+	}
 
 	return &wallet
 }
 
-
-// func PublicKeyHash(pubKey []byte) []byte {
-// 	pubHash := sha256.Sum256(pubKey)
-
-// 	hasher := ripemd160.New()
-// 	_, err := hasher.Write(pubHash[:])
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-
-// 	publicRipMD := hasher.Sum(nil)
-
-// 	return publicRipMD
-// }
+// Retrieve the ecdsa.PrivateKey from the serialized data
+func (w *Wallet) GetPrivateKey() *ecdsa.PrivateKey {
+	priv := new(ecdsa.PrivateKey)
+	priv.D = new(big.Int).SetBytes(w.PrivateKey)
+	priv.PublicKey.Curve = elliptic.P256()
+	priv.PublicKey.X, priv.PublicKey.Y = priv.PublicKey.Curve.ScalarBaseMult(w.PrivateKey)
+	return priv
+}
 
 func PublicKeyHash(pubKey []byte) []byte {
 	// First SHA-256 hash
