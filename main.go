@@ -13,6 +13,4 @@ func main() {
 	cmd := cli.CommandLine{}
 	cmd.Run()
 
-	// w := wallet.MakeWallet()
-	// w.Address()
 }

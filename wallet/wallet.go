@@ -25,18 +25,18 @@ type Wallet struct {
 func (w *Wallet) GobEncode() ([]byte, error) {
 	var buf bytes.Buffer
 	encoder := gob.NewEncoder(&buf)
-	
+
 	// Encode the PrivateKey and PublicKey fields manually
 	err := encoder.Encode(w.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	err = encoder.Encode(w.PublicKey)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return buf.Bytes(), nil
 }
 
@@ -44,17 +44,17 @@ func (w *Wallet) GobEncode() ([]byte, error) {
 func (w *Wallet) GobDecode(data []byte) error {
 	buf := bytes.NewBuffer(data)
 	decoder := gob.NewDecoder(buf)
-	
+
 	err := decoder.Decode(&w.PrivateKey)
 	if err != nil {
 		return err
 	}
-	
+
 	err = decoder.Decode(&w.PublicKey)
 	if err != nil {
 		return err
 	}
-	
+
 	return nil
 }
 
@@ -67,6 +67,16 @@ func (w Wallet) Address() []byte {
 	fullHash := append(versionedHash, checksum...)
 	address := Base58Encode(fullHash)
 	return address
+}
+
+func ValidateAddress(address string) bool {
+	pubKeyHash := Base58Decode([]byte(address))
+	actualChecksum := pubKeyHash[len(pubKeyHash)-checksumLength:]
+	version := pubKeyHash[0]
+	pubKeyHash = pubKeyHash[1 : len(pubKeyHash)-checksumLength]
+	targetChecksum := Checksum(append([]byte{version}, pubKeyHash...))
+
+	return bytes.Equal(actualChecksum, targetChecksum)
 }
 
 // Create new key pair and return the Wallet
