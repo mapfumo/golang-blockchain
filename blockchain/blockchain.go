@@ -39,6 +39,37 @@ func DBexists() bool {
 	return true
 }
 
+func ContinueBlockChain(address string) *BlockChain {
+	if !DBexists() {
+		fmt.Println("Blockchain does not exist - Create one!t")
+		runtime.Goexit()
+	}
+	var lastHash []byte
+
+	// Set up BadgerDB options with the database path.
+	opts := badger.DefaultOptions(dbPath)
+	opts.ValueDir = dbPath
+
+	// Open the BadgerDB database.
+	db, err := badger.Open(opts)
+	Handle(err)
+
+	// Update the database to initialize or load the blockchain.
+	err = db.Update(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte("lh"))
+		Handle(err)
+		lastHash, err = item.ValueCopy(nil)
+		return err
+	})
+	Handle(err)
+
+	bc := BlockChain{
+		LastHash: lastHash,
+		Database: db,
+	}
+
+	return &bc
+}
 
 
 // InitBlockChain initializes a new blockchain or loads an existing one from the database.
@@ -84,41 +115,10 @@ func InitBlockChain(address string) *BlockChain {
 	}
 }
 
-func ContinueBlockChain(address string) *BlockChain {
-	if !DBexists() {
-		fmt.Println("Blockchain does not exist - Create one!t")
-		runtime.Goexit()
-	}
-	var lastHash []byte
-
-	// Set up BadgerDB options with the database path.
-	opts := badger.DefaultOptions(dbPath)
-	opts.ValueDir = dbPath
-
-	// Open the BadgerDB database.
-	db, err := badger.Open(opts)
-	Handle(err)
-
-	// Update the database to initialize or load the blockchain.
-	err = db.Update(func(txn *badger.Txn) error {
-		item, err := txn.Get([]byte("lh"))
-		Handle(err)
-		lastHash, err = item.ValueCopy(nil)
-		return err
-	})
-	Handle(err)
-
-	bc := &BlockChain{
-		LastHash: lastHash,
-		Database: db,
-	}
-
-	return bc
-}
 
 
 
-func (chain *BlockChain) AddBlock(transactions []*Transaction) {
+func (chain *BlockChain) AddBlock(transactions []*Transaction)  *Block{
 	var lastHash []byte
 
 	for _, tx := range transactions {
@@ -148,6 +148,7 @@ func (chain *BlockChain) AddBlock(transactions []*Transaction) {
 		return err
 	})
 	Handle(err)
+	return newBlock
 }
 
 func (chain *BlockChain) Iterator() *BlockChainIterator {
@@ -174,9 +175,10 @@ func (iter *BlockChainIterator) Next() *Block {
 	return block
 }
 
-func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transaction {
-	var unspentTxs []Transaction
 
+
+func (chain *BlockChain) FindUTXO() map[string]TxOutputs {
+	UTXO := make(map[string]TxOutputs)
 	spentTXOs := make(map[string][]int)
 
 	iter := chain.Iterator()
@@ -196,16 +198,14 @@ func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transactio
 						}
 					}
 				}
-				if out.IsLockedWithKey(pubKeyHash) {
-					unspentTxs = append(unspentTxs, *tx)
-				}
+				outs := UTXO[txID]
+				outs.Outputs = append(outs.Outputs, out)
+				UTXO[txID] = outs
 			}
-			if !tx.IsCoinbase() {
+			if tx.IsCoinbase() == false {
 				for _, in := range tx.Inputs {
-					if in.UsesKey(pubKeyHash) {
-						inTxID := hex.EncodeToString(in.ID)
-						spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Out)
-					}
+					inTxID := hex.EncodeToString(in.ID)
+					spentTXOs[inTxID] = append(spentTXOs[inTxID], in.Out)
 				}
 			}
 		}
@@ -214,46 +214,9 @@ func (chain *BlockChain) FindUnspentTransactions(pubKeyHash []byte) []Transactio
 			break
 		}
 	}
-	return unspentTxs
+	return UTXO
 }
 
-func (chain *BlockChain) FindUTXO(pubKeyHash []byte) []TxOutput {
-	var UTXOs []TxOutput
-	unspentTransactions := chain.FindUnspentTransactions(pubKeyHash)
-
-	for _, tx := range unspentTransactions {
-		for _, out := range tx.Outputs {
-			if out.IsLockedWithKey(pubKeyHash) {
-				UTXOs = append(UTXOs, out)
-			}
-		}
-	}
-	return UTXOs
-}
-
-func (chain *BlockChain) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
-	unspentOuts := make(map[string][]int)
-	unspentTxs := chain.FindUnspentTransactions(pubKeyHash)
-	accumulated := 0
-
-Work:
-	for _, tx := range unspentTxs {
-		txID := hex.EncodeToString(tx.ID)
-
-		for outIdx, out := range tx.Outputs {
-			if out.IsLockedWithKey(pubKeyHash) && accumulated < amount {
-				accumulated += out.Value
-				unspentOuts[txID] = append(unspentOuts[txID], outIdx)
-
-				if accumulated >= amount {
-					break Work
-				}
-			}
-		}
-	}
-
-	return accumulated, unspentOuts
-}
 
 func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
 	iter := bc.Iterator()

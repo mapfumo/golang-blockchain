@@ -73,7 +73,7 @@ func CoinBaseTx(to, data string) *Transaction {
 	return &tx
 }
 
-func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction {
+func NewTransaction(from, to string, amount int, UTXO *UTXOSet) *Transaction {
 	var inputs []TxInput
 	var outputs []TxOutput
 
@@ -81,7 +81,7 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	Handle(err)
 	w := wallets.GetWallet(from)
 	pubKeyHash := wallet.PublicKeyHash(w.PublicKey)
-	acc, validOutputs := chain.FindSpendableOutputs(pubKeyHash, amount)
+	acc, validOutputs := UTXO.FindSpendableOutputs(pubKeyHash, amount)
 
 	if acc < amount {
 		log.Panic("Error: not enough funds")
@@ -90,7 +90,6 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	for txid, outs := range validOutputs {
 		txID, err := hex.DecodeString(txid)
 		Handle(err)
-
 		for _, out := range outs {
 			input := TxInput{txID, out, nil, w.PublicKey}
 			inputs = append(inputs, input)
@@ -107,7 +106,7 @@ func NewTransaction(from, to string, amount int, chain *BlockChain) *Transaction
 	tx.ID = tx.Hash()
 
 	privateKey, _ := byteToPrivateKey(w.PrivateKey)
-	chain.SignTransaction(&tx, privateKey)
+	UTXO.Blockchain.SignTransaction(&tx, privateKey)
 	// chain.SignTransaction(&tx, w.PrivateKey)
 
 	return &tx
@@ -127,6 +126,7 @@ func (tx *Transaction) Sign(privKey ecdsa.PrivateKey, prevTXs map[string]Transac
 			log.Panic("ERROR: Previous transaction is not correct")
 		}
 	}
+	// fmt.Println("Signing transaction: ", tx)
 
 	txCopy := tx.TrimmedCopy()
 
