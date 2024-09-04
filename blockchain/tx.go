@@ -12,7 +12,7 @@ type TxOutput struct {
 	PubKeyHash []byte
 }
 
-type TxOutputs struct{
+type TxOutputs struct {
 	Outputs []TxOutput
 }
 
@@ -61,5 +61,3 @@ func DeserializeOutputs(data []byte) TxOutputs {
 	Handle(err)
 	return outs
 }
-
-

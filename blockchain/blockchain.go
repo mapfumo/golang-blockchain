@@ -71,7 +71,6 @@ func ContinueBlockChain(address string) *BlockChain {
 	return &bc
 }
 
-
 // InitBlockChain initializes a new blockchain or loads an existing one from the database.
 func InitBlockChain(address string) *BlockChain {
 	fmt.Println("Initializing blockchain...")
@@ -94,7 +93,7 @@ func InitBlockChain(address string) *BlockChain {
 	// Update the database to initialize or load the blockchain.
 	err = db.Update(func(txn *badger.Txn) error {
 		fmt.Println("Creating genesis block...")
-		cbtx := CoinBaseTx(address, genesisData) // the address that will be rewarded 100 tokens
+		cbtx := CoinbaseTx(address, genesisData) // the address that will be rewarded 100 tokens
 		genesis := GenesisBlock(cbtx)
 		fmt.Println("Genesis block created")
 		err = txn.Set(genesis.Hash, genesis.Serialize())
@@ -115,10 +114,7 @@ func InitBlockChain(address string) *BlockChain {
 	}
 }
 
-
-
-
-func (chain *BlockChain) AddBlock(transactions []*Transaction)  *Block{
+func (chain *BlockChain) AddBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
 
 	for _, tx := range transactions {
@@ -175,8 +171,6 @@ func (iter *BlockChainIterator) Next() *Block {
 	return block
 }
 
-
-
 func (chain *BlockChain) FindUTXO() map[string]TxOutputs {
 	UTXO := make(map[string]TxOutputs)
 	spentTXOs := make(map[string][]int)
@@ -217,7 +211,6 @@ func (chain *BlockChain) FindUTXO() map[string]TxOutputs {
 	return UTXO
 }
 
-
 func (bc *BlockChain) FindTransaction(ID []byte) (Transaction, error) {
 	iter := bc.Iterator()
 
@@ -251,6 +244,9 @@ func (bc *BlockChain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey)
 }
 
 func (bc *BlockChain) VerifyTransaction(tx *Transaction) bool {
+	if tx.IsCoinbase() {
+		return true
+	}
 	prevTXs := make(map[string]Transaction)
 
 	for _, in := range tx.Inputs {

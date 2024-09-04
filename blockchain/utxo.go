@@ -12,7 +12,7 @@ var (
 	// badger database doesn't any tables
 	// to seperate data lets create some prefixes
 	// for the keys we put in the database
-	utxoPrefix = []byte("utxo-")
+	utxoPrefix   = []byte("utxo-")
 	prefixLength = len(utxoPrefix)
 )
 
@@ -20,7 +20,6 @@ var (
 type UTXOSet struct {
 	Blockchain *BlockChain
 }
-
 
 func (u UTXOSet) FindSpendableOutputs(pubKeyHash []byte, amount int) (int, map[string][]int) {
 	unspentOuts := make(map[string][]int)
