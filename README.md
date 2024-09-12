@@ -16,4 +16,4 @@ The consensus algorithm is a simple implementation of Proof of Work.
 
 reindexutxo - Rebuilds the UTXO set
 
-# go run man.go reindexutxo
+# go run main.go reindexutxo

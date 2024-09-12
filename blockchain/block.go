@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
+	"time"
 )
 
 type Block struct {
+	Timestamp    int64
 	Hash         []byte         // hash of this block - derived from the Data and prevHash
 	Transactions []*Transaction // each block needs at least one transaction
 	PrevHash     []byte         // hash of the previous block
 	Nonce        int
+	Height       int            // makes it easy to get the index in the chain
 
-	// Timestamp int
 }
 
 func (b *Block) HashTransactions() []byte {
@@ -26,19 +28,19 @@ func (b *Block) HashTransactions() []byte {
 	return tree.RootNode.Data
 }
 
-func CreateBlock(txs []*Transaction, prevHash []byte) *Block {
-	b := &Block{[]byte{}, txs, prevHash, 0}
-	pow := NewProofOfWork(b)
+func CreateBlock(txs []*Transaction, prevHash []byte, height int) *Block {
+	block := &Block{time.Now().Unix(), []byte{}, txs, prevHash, 0, height}
+	pow := NewProofOfWork(block)
 	nonce, hash := pow.Run()
 
-	b.Hash = hash[:]
-	b.Nonce = nonce
+	block.Hash = hash[:]
+	block.Nonce = nonce
 
-	return b
+	return block
 }
 
-func GenesisBlock(coinbase *Transaction) *Block {
-	return CreateBlock([]*Transaction{coinbase}, []byte{})
+func Genesis(coinbase *Transaction) *Block {
+	return CreateBlock([]*Transaction{coinbase}, []byte{}, 0)
 }
 
 func (b *Block) Serialize() []byte {
