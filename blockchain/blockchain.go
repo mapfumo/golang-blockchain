@@ -18,7 +18,6 @@ import (
 // dbPath is the directory where the BadgerDB database files will be stored.
 const (
 	dbPath      = "./tmp/blocks_%s"
-	// dbFile      = "./tmp/blocks/MANIFEST"
 	genesisData = "First Transaction from Genesis Block"
 )
 
@@ -41,7 +40,7 @@ func DBexists(path string) bool {
 
 func ContinueBlockChain(nodeId string) *BlockChain {
 	path := fmt.Sprintf(dbPath, nodeId)
-	if DBexists(path) == false {
+	if !DBexists(path) {
 		fmt.Println("No existing blockchain found, create one!")
 		runtime.Goexit()
 	}
@@ -49,8 +48,8 @@ func ContinueBlockChain(nodeId string) *BlockChain {
 	var lastHash []byte
 
 	// Set up BadgerDB options with the database path.
-	opts := badger.DefaultOptions(dbPath)
-	opts.ValueDir = dbPath
+	opts := badger.DefaultOptions(path)
+	opts.ValueDir = path
 
 	// Open the BadgerDB database.
 	db, err := badger.Open(opts)
@@ -80,9 +79,9 @@ func InitBlockChain(address, nodeId string) *BlockChain {
 	}
 	var lastHash []byte
 	// Set up BadgerDB options with the database path.
-	opts := badger.DefaultOptions(dbPath)
+	opts := badger.DefaultOptions(path)
 	opts.Logger = nil
-	opts.ValueDir = dbPath
+	opts.ValueDir = path
 
 	// Open the BadgerDB database.
 	db, err := badger.Open(opts)
@@ -114,7 +113,7 @@ func (chain *BlockChain) MineBlock(transactions []*Transaction) *Block {
 	var lastHeight int
 
 	for _, tx := range transactions {
-		if chain.VerifyTransaction(tx) != true {
+		if !chain.VerifyTransaction(tx) {
 			log.Panic("Invalid Transaction")
 		}
 	}
